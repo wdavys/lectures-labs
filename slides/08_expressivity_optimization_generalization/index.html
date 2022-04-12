@@ -60,11 +60,10 @@ E\_n(f\_n) - E(f^\star) & = & E(f\_{\mathcal{F}}^\star) - E(f^\star) \\\\
 
 --
 
-Ground truth function: $f^\star$
-
---
-
-Hypothesis class: $\mathcal{F}$, best hypothesis: $f\_\mathcal{F}^\star \in \mathcal{F}$
+- Trained model: $f\_n$
+- Ground truth function (unknown): $f^\star$
+- Hypothesis class: $\mathcal{F}$
+- Best hypothesis in class: $f\_\mathcal{F}^\star \in \mathcal{F}$
 
 --
 
@@ -853,10 +852,16 @@ More recently: [Weight Standardization](https://arxiv.org/abs/1903.10520)
 --
 - Active area of research:
 
-  - [Normalizer-Free ResNets (NFNets)](
-    https://arxiv.org/abs/2102.06171) SOTA on ImageNet
-    with Scaled Weight Standardization
+  - [Normalizer-Free ResNets (NFNets)](https://arxiv.org/abs/2102.06171)
+  - [DeepNet: Scaling Transformers to 1,000 Layers](https://arxiv.org/abs/2203.00555)
 
+???
+
+NFNets: convnets with Scaled Weight Standardization + other tricks to no need BatchNorm.
+
+DeepNet: reparametrized weight for the residual addition before layer norm +
+custom weight on init scheme with closed form formula to adapt those too
+parameters to the depth of the transformer architecture.
 
 ---
 # BTW: why minibatch SGD?
@@ -890,45 +895,6 @@ gradients on sub-minibatches in parallel.
 class: middle, center
 
 # Generalization
-
----
-# Overfitting?
-
-Using [(decoupled) weight decay](https://arxiv.org/abs/1711.05101) can help a bit.
-
---
-
-Reducing width can cause optimization issues.
-
---
-
-Early stopping can help a bit but mostly useful to avoid wasting compute
-optimizing for nothing.
-
---
-
-Data augmentation and stochastic regularization (dropout) often help
-but:
-  - it also makes training (much) slower,
-  - too much gradient variance can prevent training completely.
-
---
-
-Ensembling models can help and can be reasonably cheap with SGD
-restarts ("snapshot ensembles").
-
-???
-
-Stochastic Regularization all-in: Stochastic Depth, Shakeout,
-Shake-Shake, Shake-Drop...
-
-Clever noise injection on the input:
-[random blank token in LM](https://arxiv.org/abs/1703.02573),
-[cutout](https://arxiv.org/abs/1708.04552) / [Random Erasing](
-  https://arxiv.org/abs/1708.04896)
-
-
-
 
 ---
 .center[
@@ -1069,17 +1035,17 @@ Experiment: regression on 1D data with heteroschedastic noise
 # Non-intuitive behavior of MLP
 
 
-Adding hidden units:
+Adding hidden units (larger width):
 
-- does not lead to (more) overfitting
+- rarely lead to (more) overfitting
 
 - make optimization easier (less steps)
 
 - make computation slower (more FLOPS per pass)
 
-Adding layers:
+Adding layers (larger depth):
 
-- does not cause much more overfitting either
+- does not always cause much more overfitting either
 
 - can cause optimization issues (underfitting)
 
@@ -1146,51 +1112,58 @@ Minima](https://arxiv.org/abs/1609.04836), N. S. Keskar et al., 2016
 <image src="images/half_moons.svg" width="70%" />
 ]
 
-Trained with L-BFGS (large batch)
-
 ---
 # Good and bad global minima
+
+.center[
+<image src="images/moons_lbfgs.svg" width="99%" />
+]
+
+---
+# **Good** and bad global minima
+
+.center[
+<image src="images/low_complexity_decision_function.svg" width="70%" />
+]
+
+???
+
+Trained with L-BFGS (large batch)!
+
+---
+# Good and **bad** global minima
 
 .center[
 <image src="images/high_complexity_decision_function_01.svg" width="70%" />
 ]
 
+???
+
+Trained with a poisoned training set: extra data points with random labels.
+
 ---
-# Good and bad global minima
+# Good and **bad** global minima
 
 .center[
 <image src="images/high_complexity_decision_function_02.svg" width="70%" />
 ]
 
+???
+
+Trained with a poisoned training set: extra data points with random labels.
+
 ---
-# Good and bad global minima
+# Good and **bad** global minima
 
 .center[
 <image src="images/high_complexity_decision_function_03.svg" width="70%" />
 ]
 
 ---
-# Good and bad global minima
+# Good and **bad** global minima
 
 .center[
 <image src="images/high_complexity_decision_function_04.svg" width="70%" />
-]
-
----
-# Good and bad global minima
-
-.center[
-<image src="images/low_complexity_decision_function.svg" width="70%" />
-]
-
-Trained with L-BFGS (large batch)!
-
-
----
-# Good and bad global minima
-
-.center[
-<image src="images/moons_lbfgs.svg" width="99%" />
 ]
 
 ---
@@ -1315,9 +1288,79 @@ Compressibility of neural networks
  Léonard Blier, Yann Ollivier
 
 ---
+# Overfitting?
+
+Using [(decoupled) weight decay](https://arxiv.org/abs/1711.05101) (AdamW) often
+helps (a bit).
+
+--
+
+Reducing width can cause optimization issues (underfitting)
+
+--
+
+Early stopping can help but mostly useful to avoid wasting compute optimizing
+for nothing.
+
+--
+
+Data augmentation, stochastic regularization (dropout), MixUp and SAM often
+help but it also make training slower.
+
+--
+
+Ensembling models can help and can be reasonably cheap with SGD
+restarts ("snapshot ensembles").
+
+--
+
+Self-supervised learning on pretext task + transfer learning used more and
+more.
+
+--
+
+Collecting more labels always help when possible!
+
+???
+
+Stochastic Regularization all-in: Stochastic Depth, Shakeout,
+Shake-Shake, Shake-Drop...
+
+Clever noise injection on the input:
+[random blank token in LM](https://arxiv.org/abs/1703.02573),
+[cutout](https://arxiv.org/abs/1708.04552) / [Random Erasing](
+  https://arxiv.org/abs/1708.04896)
+ 
+Also label smoothing trick to avoid over-confident decision boundaries.
+
+---
+# Overfitting? From theory to practice
+
+[Sharpness-Aware Minimization (SAM) for Efficiently Improving
+Generalization](https://arxiv.org/abs/2010.01412)
+
+[Low-Pass Filtering SGD for Recovering Flat Optima in the Deep Learning
+Optimization Landscape](https://arxiv.org/abs/2201.08025)
+
+[Surrogate Gap Minimization Improves Sharpness-Aware
+Training](https://arxiv.org/abs/2203.08065)
+
+SAM often used to reach SOTA performance (but a few % improvement in accuracy
+max).
+
+SAM can help significantly (for instance
+[transformers](https://arxiv.org/abs/2106.01548)), in particular in cases where
+no good data augmentation strategy is known.
+
+---
 class: middle, center
 
 # Conclusion
+
+---
+class: middle, center
+
+<blockquote class="twitter-tweet"><p lang="en" dir="ltr">learning theory vs deep learning <a href="https://t.co/mWG9ZI1jkb">pic.twitter.com/mWG9ZI1jkb</a></p>&mdash; Ferenc Huszár (@fhuszar) <a href="https://twitter.com/fhuszar/status/1480858527371563008?ref_src=twsrc%5Etfw">January 11, 2022</a></blockquote> <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script> 
 
 ---
 # Conclusions
@@ -1349,7 +1392,7 @@ Design architectures to limit conditioning issues:
 
 Use stochastic optimizers that are robust to bad conditioning
 
-Use small minibatches and learge learning rates
+Use small minibatches and large learning rates
 
 Use validation set to anneal learning rate and do early stopping
 
